@@ -3,5 +3,4 @@ server:
 spring:
   thymeleaf:
     cache: false
-uaa:
-  location: http://localhost:8080/uaa
+idServiceUrl: http://localhost:8080/uaa

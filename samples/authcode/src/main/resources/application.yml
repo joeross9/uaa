@@ -1,19 +1,17 @@
 security:
-  ignored: /favicon.ico
+  ignored: /favicon.ico, /
   basic:
     enabled: false
-uaa:
-  location: ${UAA_LOCATION:http://localhost:8080/uaa}
+idServiceUrl: ${ID_SERVICE_URL:http://localhost:8080/uaa}
 spring: 
   oauth2:
     client:
-      tokenUri: ${uaa.location}/oauth/token
-      authorizationUri: ${uaa.location}/oauth/authorize
-      accessTokenUri: ${oauth2.client.tokenUri}
+      accessTokenUri: ${idServiceUrl}/oauth/token
+      userAuthorizationUri: ${idServiceUrl}/oauth/authorize
       clientId: oauth_showcase_authorization_code
       clientSecret: secret
     resource:
-      tokenInfoUri: ${uaa.location}/check_token
+      jwt:
+        keyUri: ${idServiceUrl}/token_key
       id: openid
       serviceId: ${PREFIX:}resource
-    
