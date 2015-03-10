@@ -7,13 +7,11 @@ uaa:
 spring: 
   oauth2:
     client:
-      tokenUri: ${uaa.location}/oauth/token
-      authorizationUri: ${uaa.location}/oauth/authorize
-      accessTokenUri: ${oauth2.client.tokenUri}
+      accessTokenUri: ${uaa.location}/oauth/token
+      userAuthorizationUri: ${uaa.location}/oauth/authorize
       clientId: oauth_showcase_authorization_code
       clientSecret: secret
     resource:
       tokenInfoUri: ${uaa.location}/check_token
       id: openid
-      serviceId: ${PREFIX:}resource
     
