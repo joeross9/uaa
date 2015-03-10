@@ -14,4 +14,4 @@ spring:
       jwt:
         keyUri: ${idServiceUrl}/token_key
       id: openid
-      serviceId: ${PREFIX:}resource
+
