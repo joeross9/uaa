@@ -1,0 +1,19 @@
+security:
+  ignored: /favicon.ico
+  basic:
+    enabled: false
+uaa:
+  location: ${UAA_LOCATION:http://localhost:8080/uaa}
+spring: 
+  oauth2:
+    client:
+      tokenUri: ${uaa.location}/oauth/token
+      authorizationUri: ${uaa.location}/oauth/authorize
+      accessTokenUri: ${oauth2.client.tokenUri}
+      clientId: oauth_showcase_authorization_code
+      clientSecret: secret
+    resource:
+      tokenInfoUri: ${uaa.location}/check_token
+      id: openid
+      serviceId: ${PREFIX:}resource
+    

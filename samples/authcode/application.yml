@@ -1,0 +1,7 @@
+server:
+  port: 8889
+spring:
+  thymeleaf:
+    cache: false
+uaa:
+  location: http://localhost:8080/uaa
