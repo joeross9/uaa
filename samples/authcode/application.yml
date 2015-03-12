@@ -1,6 +1,13 @@
 server:
   port: 8889
-spring:
+idServiceUrl: https://the-will-zone.uaa.10.244.0.34.xip.io
+spring: 
   thymeleaf:
     cache: false
-idServiceUrl: http://localhost:8080/uaa
+  oauth2:
+    client:
+      clientId: bc4e34c2-cd6d-4247-962d-3ed8fec05292
+      clientSecret: 665fce89-88f5-48ac-a340-3dfb76b8e6b1
+      
+logging.level:
+  org.springframework.security: DEBUG

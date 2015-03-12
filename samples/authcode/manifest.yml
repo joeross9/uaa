@@ -1,0 +1,11 @@
+---
+applications:
+ - name: authcode-sample
+   memory: 512M
+   instances: 1
+   path: target/authcode-sample-0.0.1-SNAPSHOT.jar
+   env:
+     SKIP_SSL_VALIDATION: "true"
+     ID_SERVICE_URL: https://the-will-zone.uaa.10.244.0.34.xip.io
+     CLIENT_ID: bc4e34c2-cd6d-4247-962d-3ed8fec05292
+     CLIENT_SECRET: 665fce89-88f5-48ac-a340-3dfb76b8e6b1

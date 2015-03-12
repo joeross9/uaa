@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.oauth2showcase;
+package org.cloudfoundry.identity.samples.authcode;
 
 import java.util.Map;
 
@@ -10,11 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.cloud.security.oauth2.sso.EnableOAuth2Sso;
-import org.springframework.cloud.security.oauth2.sso.OAuth2SsoConfigurerAdapter;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.stereotype.Controller;
@@ -32,13 +29,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class Application {
 
     public static void main(String[] args) {
+        if ("true".equals(System.getenv("SKIP_SSL_VALIDATION"))) {
+            SSLValidationDisabler.disableSSLValidation();
+        }
         SpringApplication.run(Application.class, args);
     }
 
-    @RequestMapping("/")
-    public String index(HttpServletRequest request, Model model) {
-        return "index";
-    }
 
     @Value("${idServiceUrl}")
     private String idServiceUrl;
@@ -49,12 +45,17 @@ public class Application {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @RequestMapping("/")
+    public String index(HttpServletRequest request, Model model) {
+        return "index";
+    }
+
     @RequestMapping("/authorization_code")
     public String authCode(Model model) throws Exception {
-        String response = oauth2RestTemplate.getForObject("{idServiceUrl}/userinfo", String.class,
+        Map<?,?> userInfoResponse = oauth2RestTemplate.getForObject("{idServiceUrl}/userinfo", Map.class,
                 idServiceUrl);
         model.addAttribute("idServiceUrl",idServiceUrl);
-        model.addAttribute("response",toPrettyJsonString(response));
+        model.addAttribute("response",toPrettyJsonString(userInfoResponse));
         Map<String, ?> token = getToken(oauth2RestTemplate.getOAuth2ClientContext());
         model.addAttribute("token",toPrettyJsonString(token));
         return "authorization_code";
@@ -69,11 +70,6 @@ public class Application {
         return null;
     }
 
-    private String toPrettyJsonString(String json) throws Exception {
-        Object object = objectMapper.readValue(json, Object.class);
-        return toPrettyJsonString(object);
-    }
-    
     private String toPrettyJsonString(Object object) throws Exception {
         return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
     }
