@@ -26,11 +26,6 @@ import org.codehaus.jackson.type.TypeReference;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class IdentityProvider {
-    /**
-     * Used for testing until we actually write the domain model
-     * @param jdbcTemplate
-     * @param originKey
-     */
 
     private String id;
 

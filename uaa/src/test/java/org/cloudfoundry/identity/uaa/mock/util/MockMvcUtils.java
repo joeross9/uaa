@@ -141,9 +141,9 @@ public class MockMvcUtils {
     public IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
             IdentityProvider identityProvider, ResultMatcher resultMatcher) throws Exception {
         MockHttpServletRequestBuilder requestBuilder = post("/identity-providers/")
-                .header("Authorization", "Bearer" + token)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(identityProvider));
+            .header("Authorization", "Bearer " + token)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(identityProvider));
         if (zoneId != null) {
             requestBuilder.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
