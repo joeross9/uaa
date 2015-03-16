@@ -223,8 +223,21 @@ public class MockMvcUtils {
         return oauthToken.accessToken;
     }
 
-    public String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId,
-            String username, String password, String scope) throws Exception {
+    public String getClientOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String scope)
+        throws Exception {
+        String basicDigestHeaderValue = "Basic "
+            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "client_credentials")
+            .param("client_id", clientId)
+            .param("scope", scope);
+        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        TestClient.OAuthToken oauthToken = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), TestClient.OAuthToken.class);
+        return oauthToken.accessToken;
+    }
+
+    public String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope) throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret)
                         .getBytes()));

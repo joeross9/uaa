@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.ldap;
 
 import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.springframework.security.authentication.AuthenticationManager;
 
@@ -47,6 +48,7 @@ public class LdapIdentityProviderDefinition {
         this.groupSearchFilter = groupSearchFilter;
     }
 
+    @JsonIgnore
     public AuthenticationManager getAuthenticationManager() {
         return null;
     }

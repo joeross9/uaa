@@ -18,16 +18,21 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -186,6 +191,46 @@ public class LdapMockMvcTests extends TestClassNullifier {
     private void deleteLdapUsers() {
         jdbcTemplate.update("delete from users where origin='" + Origin.LDAP + "'");
     }
+
+    @Test
+    public void testLoginInNonDefaultZone() throws Exception {
+        Assume.assumeThat("ldap-search-and-bind.xml", StringContains.containsString(ldapProfile));
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
+
+        setUp();
+        String identityAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
+        String adminAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc,identityAccessToken);
+        ScimUser zoneAdmin = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "givenName", "familyName");
+        zoneAdmin.setPrimaryEmail(zoneAdmin.getUserName());
+        zoneAdmin = MockMvcUtils.utils().createUser(mockMvc, adminAccessToken, zoneAdmin);
+        ScimGroup zoneGroup = new ScimGroup("zones."+zone.getId()+".admin");
+        ScimGroupMember member = new ScimGroupMember(zoneAdmin.getId());
+        zoneGroup.setMembers(Arrays.asList(member));
+        zoneGroup = MockMvcUtils.utils().createGroup(mockMvc, adminAccessToken, zoneGroup);
+
+
+        mockMvc.perform(get("/login")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("login"))
+                .andExpect(model().attributeDoesNotExist("saml"));
+
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa")
+            .param("password", "koaladsada"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=login_failure"));
+
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+    }
+
 
     @Test
     public void runLdapTestblock() throws Exception {
