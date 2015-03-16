@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
@@ -28,6 +29,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -201,14 +203,16 @@ public class LdapMockMvcTests extends TestClassNullifier {
         String identityAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
         String adminAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
         IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc,identityAccessToken);
-        ScimUser zoneAdmin = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "givenName", "familyName");
-        zoneAdmin.setPrimaryEmail(zoneAdmin.getUserName());
-        zoneAdmin = MockMvcUtils.utils().createUser(mockMvc, adminAccessToken, zoneAdmin);
-        ScimGroup zoneGroup = new ScimGroup("zones."+zone.getId()+".admin");
-        ScimGroupMember member = new ScimGroupMember(zoneAdmin.getId());
-        zoneGroup.setMembers(Arrays.asList(member));
-        zoneGroup = MockMvcUtils.utils().createGroup(mockMvc, adminAccessToken, zoneGroup);
-
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc, adminAccessToken, zone.getId());
+        LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition(
+            "ldap://localhost:33389",
+            null,
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}");
 
         mockMvc.perform(get("/login")
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
@@ -216,12 +220,22 @@ public class LdapMockMvcTests extends TestClassNullifier {
                 .andExpect(view().name("login"))
                 .andExpect(model().attributeDoesNotExist("saml"));
 
+        //IDP not yet created
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
             .param("username", "marissa")
-            .param("password", "koaladsada"))
+            .param("password", "ldap"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?error=login_failure"));
+
+        IdentityProvider provider = new IdentityProvider();
+        provider.setOriginKey(Origin.LDAP);
+        provider.setName("Test ldap provider");
+        provider.setType(Origin.LDAP);
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setActive(true);
+        provider.setIdentityZoneId(zone.getId());
+        MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
