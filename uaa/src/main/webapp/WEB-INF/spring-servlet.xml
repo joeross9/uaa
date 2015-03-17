@@ -272,7 +272,7 @@
     </bean>
 
     <beans profile="ldap">
-        <import resource="spring/ldap-integration.xml"/>
+        <import resource="classpath:ldap-integration.xml"/>
 
         <bean id="checkLdapIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
             <constructor-arg name="origin" value="ldap"/>

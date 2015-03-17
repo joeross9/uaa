@@ -175,6 +175,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
+        Object ldap = webApplicationContext.getBean("ldapAuthenticationManager");
+        System.out.println("ldap = " + ldap);
     }
 
     @After
