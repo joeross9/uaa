@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Test;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -35,12 +34,12 @@ public class DynamicLdapAuthenticationManagerTest {
     public void testGetLdapAuthenticationManager() throws Exception {
         ScimGroupExternalMembershipManager scimGroupExternalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
         ScimGroupProvisioning scimGroupProvisioning = mock(ScimGroupProvisioning.class);
-        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+        LdapLoginAuthenticationManager ldapLoginAuthenticationManager = mock(LdapLoginAuthenticationManager.class);
         AuthenticationManager manager = new DynamicLdapAuthenticationManager(
                 ldapIdentityProviderDefinition,
                 scimGroupExternalMembershipManager,
                 scimGroupProvisioning,
-                userDatabase)
+            ldapLoginAuthenticationManager)
             .getLdapAuthenticationManager();
         assertNotNull(manager);
         assertTrue(manager instanceof ProviderManager);

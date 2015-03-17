@@ -48,14 +48,4 @@
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
 
-    <bean id="autoAddAuthorities" class="java.lang.Boolean">
-        <constructor-arg value="${ldap.groups.autoAdd:true}"/>
-    </bean>
-
-    <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
-        <property name="userDatabase" ref="userDatabase" />
-        <property name="origin" value="ldap"/>
-        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
-    </bean>
-
 </beans>

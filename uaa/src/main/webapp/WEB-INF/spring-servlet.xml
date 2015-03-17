@@ -230,7 +230,7 @@
 
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint">
-        <property name="authenticationManager" ref="authzAuthenticationMgr"/>
+        <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <property name="uaaBaseUrl" ref="uaaUrl" />
         <property name="links" ref="links" />
         <property name="entityID" ref="samlEntityID"/>
@@ -270,6 +270,17 @@
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="samlProviders" ref="metaDataProviders"/>
     </bean>
+
+    <bean id="autoAddAuthorities" class="java.lang.Boolean">
+        <constructor-arg value="${ldap.groups.autoAdd:true}"/>
+    </bean>
+
+    <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
+        <property name="userDatabase" ref="userDatabase" />
+        <property name="origin" value="ldap"/>
+        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
+    </bean>
+
 
     <beans profile="ldap">
         <import resource="classpath:ldap-integration.xml"/>

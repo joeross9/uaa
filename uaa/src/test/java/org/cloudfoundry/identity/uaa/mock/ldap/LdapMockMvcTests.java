@@ -27,11 +27,14 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -130,6 +133,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     JdbcTemplate jdbcTemplate;
     JdbcScimGroupProvisioning gDB;
     JdbcScimUserProvisioning uDB;
+    UaaUserDatabase userDatabase;
 
     private String ldapProfile;
     private String ldapGroup;
@@ -142,6 +146,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     @Before
     public void createMockEnvironment() {
         mockEnvironment = new MockEnvironment();
+        IdentityZoneHolder.clear();
     }
 
     public void setUp() throws Exception {
@@ -175,8 +180,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
-        Object ldap = webApplicationContext.getBean("ldapAuthenticationManager");
-        System.out.println("ldap = " + ldap);
+        userDatabase = webApplicationContext.getBean(UaaUserDatabase.class);
     }
 
     @After
@@ -250,6 +254,13 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .param("password", "ldap"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/"));
+
+        IdentityZoneHolder.set(zone);
+        UaaUser user = userDatabase.retrieveUserByName("marissa2",Origin.LDAP);
+        IdentityZoneHolder.clear();
+        assertNotNull(user);
+        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(zone.getId(), user.getZoneId());
     }
 
 

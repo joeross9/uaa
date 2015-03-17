@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.config.EnvironmentPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -19,25 +18,28 @@ import java.nio.file.ProviderNotFoundException;
 
 public class DynamicLdapAuthenticationManager implements AuthenticationManager {
     private final LdapIdentityProviderDefinition definition;
-    private AuthenticationManager manager = null;
     private ClassPathXmlApplicationContext context = null;
     private ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private ScimGroupProvisioning scimGroupProvisioning;
-    private UaaUserDatabase userDatabase;
+    private LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
+    private AuthenticationManager manager;
 
     public DynamicLdapAuthenticationManager(LdapIdentityProviderDefinition definition,
                                             ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
                                             ScimGroupProvisioning scimGroupProvisioning,
-                                            UaaUserDatabase userDatabase) {
+                                            LdapLoginAuthenticationManager ldapLoginAuthenticationManager) {
         this.definition = definition;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
-        this.userDatabase = userDatabase;
+        this.ldapLoginAuthenticationManager = ldapLoginAuthenticationManager;
     }
 
     public synchronized AuthenticationManager getLdapAuthenticationManager() throws BeansException {
         if (definition==null) {
             return null;
+        }
+        if (manager!=null) {
+            return manager;
         }
         if (context==null) {
             ConfigurableEnvironment environment = definition.getLdapConfigurationEnvironment();
@@ -45,7 +47,7 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             DefaultListableBeanFactory parentBeanFactory = new DefaultListableBeanFactory();
             parentBeanFactory.registerSingleton("externalGroupMembershipManager", scimGroupExternalMembershipManager);
             parentBeanFactory.registerSingleton("scimGroupProvisioning", scimGroupProvisioning);
-            parentBeanFactory.registerSingleton("userDatabase", userDatabase);
+            parentBeanFactory.registerSingleton("ldapLoginAuthenticationMgr", ldapLoginAuthenticationManager);
             GenericApplicationContext parent = new GenericApplicationContext(parentBeanFactory);
             parent.refresh();
 
@@ -58,8 +60,19 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             placeholderConfigurer.setProperties(factoryBean.getObject());
             context.addBeanFactoryPostProcessor(placeholderConfigurer);
             context.refresh();
-            manager = (AuthenticationManager)context.getBean("ldapAuthenticationManager");
+            AuthenticationManager ldapActualManager = (AuthenticationManager)context.getBean("ldapAuthenticationManager");
+            AuthenticationManager shadowUserManager = (AuthenticationManager)context.getBean("ldapLoginAuthenticationMgr");
+
+            //chain the LDAP with the shadow account creation manager
+            ChainedAuthenticationManager chainedAuthenticationManager = new ChainedAuthenticationManager();
+            ChainedAuthenticationManager.AuthenticationManagerConfiguration config1 =
+                new ChainedAuthenticationManager.AuthenticationManagerConfiguration(ldapActualManager, null);
+            ChainedAuthenticationManager.AuthenticationManagerConfiguration config2 =
+                new ChainedAuthenticationManager.AuthenticationManagerConfiguration(shadowUserManager, "ifPreviousTrue");
+            chainedAuthenticationManager.setDelegates(new ChainedAuthenticationManager.AuthenticationManagerConfiguration[] {config1, config2});
+            manager = chainedAuthenticationManager;
         }
+
         return manager;
     }
 
