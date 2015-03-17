@@ -273,7 +273,8 @@
 
     <beans profile="ldap">
         <import resource="spring/ldap-integration.xml"/>
-        <bean id="checkIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
+
+        <bean id="checkLdapIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
             <constructor-arg name="origin" value="ldap"/>
             <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
             <constructor-arg name="delegate" ref="ldapAuthenticationManager"/>
@@ -293,7 +294,7 @@
                     </bean>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="required" value="ifPreviousFalse"/>
-                        <property name="authenticationManager" ref="checkIdpEnabledManager"/>
+                        <property name="authenticationManager" ref="checkLdapIdpEnabledManager"/>
                         <property name="stopIf">
                             <list value-type="java.lang.Class">
                                 <value>org.springframework.security.authentication.ProviderNotFoundException</value>
