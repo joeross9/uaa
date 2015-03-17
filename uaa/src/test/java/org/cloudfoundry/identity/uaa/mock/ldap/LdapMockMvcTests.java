@@ -22,8 +22,6 @@ import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -202,17 +200,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         setUp();
         String identityAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
         String adminAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
-        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc,identityAccessToken);
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, identityAccessToken);
         String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc, adminAccessToken, zone.getId());
-        LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition(
-            "ldap://localhost:33389",
-            null,
-            "cn=admin,ou=Users,dc=test,dc=com",
-            "adminsecret",
-            "dc=test,dc=com",
-            "cn={0}",
-            "ou=scopes,dc=test,dc=com",
-            "member={0}");
 
         mockMvc.perform(get("/login")
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
@@ -223,10 +212,26 @@ public class LdapMockMvcTests extends TestClassNullifier {
         //IDP not yet created
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
-            .param("username", "marissa")
+            .param("username", "marissa2")
             .param("password", "ldap"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?error=login_failure"));
+
+        LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            10
+        );
 
         IdentityProvider provider = new IdentityProvider();
         provider.setOriginKey(Origin.LDAP);
