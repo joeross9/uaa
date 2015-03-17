@@ -12,53 +12,70 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.ldap;
 
-import com.unboundid.scim.data.Manager;
-import org.hamcrest.Matchers;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
+import org.springframework.core.env.ConfigurableEnvironment;
 
-import java.util.List;
-
-import static org.hamcrest.Matchers.any;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class LdapIdentityProviderDefinitionTest {
 
     private LdapIdentityProviderDefinition ldapIdentityProviderDefinition;
-    private final String SSL_CERTIFICATE = "-----BEGIN CERTIFICATE-----\n" +
-        "MIIBfTCCAScCBgFDfaC2yzANBgkqhkiG9w0BAQUFADBCMQswCQYDVQQGEwJVUzEMMAoGA1UEChMD\n" +
-        "QVNGMRIwEAYDVQQLEwlEaXJlY3RvcnkxETAPBgNVBAMTCEFwYWNoZURTMB4XDTE0MDExMDE5Mjg0\n" +
-        "MVoXDTE1MDExMDE5Mjg0MVowTDELMAkGA1UEBhMCVVMxDDAKBgNVBAoTA0FTRjESMBAGA1UECxMJ\n" +
-        "RGlyZWN0b3J5MRswGQYDVQQDExJmaGFuaWstd29ya3N0YXRpb24wXDANBgkqhkiG9w0BAQEFAANL\n" +
-        "ADBIAkEAuA6Nmto6NFCCJ+CwsBnT2cvMxuYgf26iZ3ckIpLhs2V4ZJ4PFinR6JZUsVnRp0RbYoV5\n" +
-        "iW6F91XDTVtAMtDTJwIDAQABMA0GCSqGSIb3DQEBBQUAA0EATFGpEIprKYcnc+JuNcSQ8v2P2J7e\n" +
-        "lQ23NhTaljASF0g8AZ7SZEItU8JFYqf/KnNJ7FPwo4LbMbr7Zg6BRKBvnQ==\n" +
-        "-----END CERTIFICATE-----";
 
     @Before
     public void setUp() throws Exception {
-        ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition("ldap://localhost:389/",
-                                                                            SSL_CERTIFICATE,
-                                                                            "cn=admin,ou=Users,dc=test,dc=com",
-                                                                            "adminsecret",
-                                                                            "dc=test,dc=com",
-                                                                            "cn={0}",
-                                                                            "ou=scopes,dc=test,dc=com",
-                                                                            "member={0}");
+
     }
 
     @Test
-    public void testGetAuthenticationManager() throws Exception {
-        ProviderManager authenticationManager = (ProviderManager) ldapIdentityProviderDefinition.getAuthenticationManager();
-        List<AuthenticationProvider> providers = authenticationManager.getProviders();
-        assertEquals(1, providers.size());
-        LdapAuthenticationProvider provider = (LdapAuthenticationProvider) providers.get(0);
+    public void testSearchAndBindConfiguration() throws Exception {
+        ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:389/",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            100);
 
+        String config = JsonUtils.writeValueAsString(ldapIdentityProviderDefinition);
+        LdapIdentityProviderDefinition deserialized = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);
+        assertEquals(ldapIdentityProviderDefinition, deserialized);
+        assertEquals("ldap/ldap-search-and-bind.xml", deserialized.getLdapProfileFile());
+        assertEquals("ldap/ldap-groups-map-to-scopes.xml", deserialized.getLdapGroupFile());
+
+        ConfigurableEnvironment environment = deserialized.getLdapConfigurationEnvironment();
+        //mail attribute
+        assertNotNull(environment.getProperty("ldap.base.mailAttributeName"));
+        assertEquals("mail", environment.getProperty("ldap.base.mailAttributeName"));
+
+        //url attribute
+        assertNotNull(environment.getProperty("ldap.base.url"));
+        assertEquals("ldap://localhost:389/", environment.getProperty("ldap.base.url"));
+
+        //profile file
+        assertNotNull(environment.getProperty("ldap.profile.file"));
+        assertEquals("ldap/ldap-search-and-bind.xml", environment.getProperty("ldap.profile.file"));
+
+        //group file
+        assertNotNull(environment.getProperty("ldap.groups.file"));
+        assertEquals("ldap/ldap-groups-map-to-scopes.xml", environment.getProperty("ldap.groups.file"));
+
+        //search sub tree for group
+        assertNotNull(environment.getProperty("ldap.groups.searchSubtree"));
+        assertEquals(Boolean.TRUE.toString(), environment.getProperty("ldap.groups.searchSubtree"));
+
+        //max search depth for groups
+        assertNotNull(environment.getProperty("ldap.groups.maxSearchDepth"));
+        assertEquals("100", environment.getProperty("ldap.groups.maxSearchDepth"));
     }
 }
