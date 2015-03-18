@@ -115,7 +115,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
     protected DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager(boolean mock) {
         if (mock) {
-            final AuthenticationManager mockLdapManager = mock(AuthenticationManager.class);
+            final DynamicLdapAuthenticationManager mockLdapManager = mock(DynamicLdapAuthenticationManager.class);
             return new DynamicZoneAwareAuthenticationManager(
                 authzAuthenticationMgr,
                 providerProvisioning,
@@ -125,7 +125,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
                 ldapLoginAuthenticationManager
             ) {
                 @Override
-                protected AuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
+                protected DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
                     return mockLdapManager;
                 }
             };

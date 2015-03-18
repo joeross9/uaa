@@ -25,6 +25,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -33,7 +34,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     private final IdentityProviderProvisioning provisioning;
     private final AuthenticationManager internalUaaAuthenticationManager;
     private final AuthenticationManager authzAuthenticationMgr;
-    private final ConcurrentMap<IdentityZone, AuthenticationManager> ldapAuthManagers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<IdentityZone, DynamicLdapAuthenticationManager> ldapAuthManagers = new ConcurrentHashMap<>();
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
@@ -63,6 +64,12 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
             try {
                 IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
                 if (ldapProvider.isActive()) {
+                    //has LDAP IDP config changed since last time?
+                    DynamicLdapAuthenticationManager existing = getLdapAuthenticationManager(zone, ldapProvider);
+                    if (!existing.getDefinition().equals(ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class))) {
+                        ldapAuthManagers.remove(zone);
+                        existing.destroy();
+                    }
                     return getLdapAuthenticationManager(zone, ldapProvider).authenticate(authentication);
                 }
             } catch (EmptyResultDataAccessException noLdapProviderFound) {
@@ -72,8 +79,8 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         }
     }
 
-    protected AuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
-        AuthenticationManager ldapMgr = ldapAuthManagers.get(zone);
+    protected DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
+        DynamicLdapAuthenticationManager ldapMgr = ldapAuthManagers.get(zone);
         if (ldapMgr!=null) {
             return ldapMgr;
         }
@@ -83,5 +90,11 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
             ldapLoginAuthenticationManager);
         ldapAuthManagers.putIfAbsent(zone, ldapMgr);
         return ldapAuthManagers.get(zone);
+    }
+
+    public void destroy() {
+        for (Map.Entry<IdentityZone, DynamicLdapAuthenticationManager> entry : ldapAuthManagers.entrySet()) {
+            entry.getValue().destroy();
+        }
     }
 }

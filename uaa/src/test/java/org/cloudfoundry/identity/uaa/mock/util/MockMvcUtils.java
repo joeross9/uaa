@@ -20,6 +20,7 @@ import java.util.UUID;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -139,11 +140,23 @@ public class MockMvcUtils {
     }
 
     public IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
-            IdentityProvider identityProvider, ResultMatcher resultMatcher) throws Exception {
-        MockHttpServletRequestBuilder requestBuilder = post("/identity-providers/")
-            .header("Authorization", "Bearer " + token)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(identityProvider));
+                                                     IdentityProvider identityProvider, ResultMatcher resultMatcher) throws Exception {
+        return createIdpUsingWebRequest(mockMvc, zoneId, token, identityProvider, resultMatcher, false);
+    }
+    public IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
+            IdentityProvider identityProvider, ResultMatcher resultMatcher, boolean update) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+            update ?
+                put("/identity-providers/"+identityProvider.getId())
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityProvider))
+            :
+                post("/identity-providers/")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityProvider));
+
         if (zoneId != null) {
             requestBuilder.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }

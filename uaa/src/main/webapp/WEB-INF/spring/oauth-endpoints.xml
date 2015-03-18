@@ -337,7 +337,8 @@
         <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="zoneAwareAuthzAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager">
+    <bean id="zoneAwareAuthzAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager"
+        destroy-method="destroy">
         <constructor-arg name="authzAuthenticationMgr" ref="authzAuthenticationMgr"/>
         <constructor-arg name="internalUaaAuthenticationManager" ref="uaaAuthenticationMgr"/>
         <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>

@@ -246,7 +246,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
-        MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
+        provider = MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
@@ -261,6 +261,50 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertNotNull(user);
         assertEquals(Origin.LDAP, user.getOrigin());
         assertEquals(zone.getId(), user.getZoneId());
+
+        provider.setActive(false);
+        MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=login_failure"));
+
+
+        provider.setActive(true);
+        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            "{0}@ldaptest.com",
+            true,
+            true,
+            true,
+            10
+        );
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
+
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+
+        IdentityZoneHolder.set(zone);
+        user = userDatabase.retrieveUserByName("marissa2",Origin.LDAP);
+        IdentityZoneHolder.clear();
+        assertNotNull(user);
+        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(zone.getId(), user.getZoneId());
+        assertEquals("marissa2@ldaptest.com", user.getEmail());
     }
 
 

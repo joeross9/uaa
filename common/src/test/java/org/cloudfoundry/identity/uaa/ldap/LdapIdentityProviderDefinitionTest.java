@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class LdapIdentityProviderDefinitionTest {
@@ -77,5 +78,26 @@ public class LdapIdentityProviderDefinitionTest {
         //max search depth for groups
         assertNotNull(environment.getProperty("ldap.groups.maxSearchDepth"));
         assertEquals("100", environment.getProperty("ldap.groups.maxSearchDepth"));
+
+        ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:389/",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            "{0}sub",
+            true,
+            true,
+            true,
+            100);
+
+        config = JsonUtils.writeValueAsString(ldapIdentityProviderDefinition);
+        LdapIdentityProviderDefinition deserialized2 = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);
+        assertEquals(true, deserialized2.isMailSubstituteOverridesLdap());
+        assertEquals("{0}sub", deserialized2.getMailSubstitute());
+        assertNotEquals(deserialized, deserialized2);
     }
 }

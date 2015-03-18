@@ -9,6 +9,7 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -56,8 +57,9 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             context.setEnvironment(environment);
             EnvironmentPropertiesFactoryBean factoryBean = new EnvironmentPropertiesFactoryBean();
             factoryBean.setEnvironment(environment);
-            PropertyPlaceholderConfigurer placeholderConfigurer = new PropertyPlaceholderConfigurer();
+            PropertySourcesPlaceholderConfigurer placeholderConfigurer = new PropertySourcesPlaceholderConfigurer();
             placeholderConfigurer.setProperties(factoryBean.getObject());
+            placeholderConfigurer.setLocalOverride(true);
             context.addBeanFactoryPostProcessor(placeholderConfigurer);
             context.refresh();
             AuthenticationManager ldapActualManager = (AuthenticationManager)context.getBean("ldapAuthenticationManager");
@@ -74,6 +76,10 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
         }
 
         return manager;
+    }
+
+    public LdapIdentityProviderDefinition getDefinition() {
+        return definition;
     }
 
 
