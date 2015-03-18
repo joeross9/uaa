@@ -81,8 +81,9 @@ public class DynamicZoneAwareAuthenticationManagerTest {
 
         DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager(true);
 
-        AuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
+        DynamicLdapAuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
         when(mockManager.authenticate(eq(success))).thenReturn(success);
+        when(mockManager.getDefinition()).thenReturn(ldapIdentityProviderDefinition);
         Authentication result = manager.authenticate(success);
         assertSame(success, result);
         verifyZeroInteractions(uaaAuthenticationMgr);

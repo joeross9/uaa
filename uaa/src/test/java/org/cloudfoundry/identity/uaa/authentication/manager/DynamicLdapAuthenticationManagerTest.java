@@ -35,15 +35,16 @@ public class DynamicLdapAuthenticationManagerTest {
         ScimGroupExternalMembershipManager scimGroupExternalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
         ScimGroupProvisioning scimGroupProvisioning = mock(ScimGroupProvisioning.class);
         LdapLoginAuthenticationManager ldapLoginAuthenticationManager = mock(LdapLoginAuthenticationManager.class);
-        AuthenticationManager manager = new DynamicLdapAuthenticationManager(
-                ldapIdentityProviderDefinition,
+        AuthenticationManager manager =
+            new DynamicLdapAuthenticationManager(ldapIdentityProviderDefinition,
                 scimGroupExternalMembershipManager,
                 scimGroupProvisioning,
-            ldapLoginAuthenticationManager)
+                ldapLoginAuthenticationManager)
             .getLdapAuthenticationManager();
         assertNotNull(manager);
-        assertTrue(manager instanceof ProviderManager);
-        ProviderManager providerManager = (ProviderManager)manager;
+        assertTrue(manager instanceof ChainedAuthenticationManager);
+        ChainedAuthenticationManager chainedAuthenticationManager = (ChainedAuthenticationManager)manager;
+        ProviderManager providerManager = (ProviderManager)chainedAuthenticationManager.getDelegates()[0].getAuthenticationManager();
         assertEquals(1, providerManager.getProviders().size());
         assertTrue(providerManager.getProviders().get(0) instanceof LdapAuthenticationProvider);
     }
