@@ -1,4 +1,4 @@
-#BEGIN SAML PROVIDERS - Used by travis tests - jcr
+#BEGIN SAML PROVIDERS - Used by travis tests
     providers:
       okta-local:
         idpMetadata: sample-okta-localhost.xml
